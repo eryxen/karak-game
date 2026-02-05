@@ -1,0 +1,104 @@
+{
+  "story_metadata": {
+    "title": "加叻大道的第N位乘客 (The Nth Passenger on Karak)",
+    "genre": "Folk Horror / Psychological Thriller",
+    "version": "1.0.0",
+    "author": "Aurora Green Studio",
+    "language": "zh-TW",
+    "setting": {
+      "location": "馬來西亞加叻大道 (Karak Highway)",
+      "time": "深夜 02:33 (丑時)",
+      "weather": "熱帶雷暴雨 (Tropical Thunderstorm)",
+      "atmosphere_keywords": ["Humid", "Claustrophobic", "Frangipani Scent", "Static Noise"]
+    }
+  },
+  "player_config": {
+    "initial_stats": {
+      "sanity": 100,
+      "health": 100,
+      "karma": 50
+    },
+    "inventory": [
+      "手機 (電量 12%)",
+      "一瓶水",
+      "護身符 (未開光)"
+    ]
+  },
+  "global_flags": {
+    "has_prayed_datuk_kong": false,
+    "has_whistled_at_night": false,
+    "knows_pontianak_name": false,
+    "yellow_vw_sighted": false
+  },
+  "entities_database": {
+    "pontianak": {
+      "name": "香蕉精/龐蒂雅娜",
+      "weakness": "鐵釘 (Nail)",
+      "sign": "嬰兒哭聲或濃烈花香",
+      "kill_condition": "Sanity < 20 AND Player is bleeding"
+    },
+    "datuk_kong": {
+      "name": "拿督公 (土地神)",
+      "offering": "甘文煙 (Kemenyan)",
+      "taboo": "隨地小便或不敬",
+      "blessing": "恢復 Sanity +30"
+    }
+  },
+  "scenes": {
+    "start_01": {
+      "id": "start_01",
+      "type": "narrative",
+      "text": "雨刷瘋狂地擺動，卻刮不淨擋風玻璃前如瀑布般的暴雨。你的車在加叻大道 (Karak Highway) 的隧道前拋錨了。收音機裡原本播放的馬來流行歌變成了刺耳的白噪音...\n\n突然後座傳來一陣嬰兒的哭聲。但你記得，你是一個人開車的。",
+      "visual_effect": "screen_shake_mild",
+      "audio_loop": "heavy_rain_muffled.mp3",
+      "options": [
+        {
+          "text": "回頭看後座",
+          "next_scene": "death_instant_01",
+          "condition": "sanity < 50",
+          "effect": "sanity -100"
+        },
+        {
+          "text": "調整後視鏡觀察",
+          "next_scene": "mirror_check_01",
+          "effect": "sanity -10"
+        },
+        {
+          "text": "無視聲音，嘗試重新發動引擎",
+          "next_scene": "engine_struggle_01",
+          "effect": "karma +5"
+        }
+      ]
+    },
+    "mirror_check_01": {
+      "id": "mirror_check_01",
+      "type": "investigation",
+      "text": "你顫抖著調整後視鏡。藉著偶爾劃破天際的閃電，你看到後座坐著一個穿著白袍的長髮女子。她低著頭，空氣中突然瀰漫著一股甜膩得令人作嘔的『雞蛋花香 (Frangipani)』。\n\n根據南洋傳說，這是 Pontianak 出現的徵兆。",
+      "inventory_check": "護身符 (未開光)",
+      "ai_prompt_override": "Generate a dialogue where the ghost asks: 'Where is my baby?' in a mixture of Malay and archaic Chinese. Player must type a response.",
+      "input_type": "free_text",
+      "logic_branch": {
+        "if_input_contains": ["釘子", "nail", "iron"],
+        "then_goto": "survive_fight_01",
+        "else_goto": "possession_01"
+      }
+    },
+    "shrine_encounter_02": {
+      "id": "shrine_encounter_02",
+      "type": "choice",
+      "text": "你逃出了車子，在路邊的一棵老榕樹下看到一個紅色的神龕，上面寫著『拿督公』。神龕前的蠟燭在風雨中竟然沒有熄滅。",
+      "options": [
+        {
+          "text": "雙手合十，請求保佑",
+          "next_scene": "safety_zone",
+          "effect": "has_prayed_datuk_kong = true, sanity +20"
+        },
+        {
+          "text": "覺得是迷信，踢開供品尋找避雨處",
+          "next_scene": "curse_datuk",
+          "effect": "karma -50, health -20"
+        }
+      ]
+    }
+  }
+}
