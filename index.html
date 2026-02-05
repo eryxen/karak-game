@@ -1,0 +1,2078 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>加叻大道的第N位乘客 | Karak Highway</title>
+    <meta name="description" content="南洋風格驚悚互動遊戲 - 馬來西亞加叻大道的都市傳說">
+    <meta name="theme-color" content="#0a0a0a">
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@400;700&family=Noto+Sans+TC:wght@300;400;500;700&display=swap" rel="stylesheet">
+
+    <style>
+        /* ============================================
+           CSS Variables & Reset
+           ============================================ */
+        :root {
+            --color-bg: #0a0a0a;
+            --color-bg-secondary: #1a0a0a;
+            --color-text: #e0e0e0;
+            --color-text-dim: #888;
+            --color-blood: #8b0000;
+            --color-blood-glow: rgba(139, 0, 0, 0.5);
+            --color-gold: #d4af37;
+            --color-danger: #ff4444;
+            --color-success: #44ff44;
+            --color-accent: #ff6b6b;
+            --font-serif: 'Noto Serif TC', serif;
+            --font-sans: 'Noto Sans TC', sans-serif;
+            --transition-fast: 0.2s ease;
+            --transition-normal: 0.3s ease;
+            --transition-slow: 0.5s ease;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html, body {
+            height: 100%;
+            overflow: hidden;
+        }
+
+        body {
+            font-family: var(--font-sans);
+            background: var(--color-bg);
+            color: var(--color-text);
+            line-height: 1.8;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* ============================================
+           Game Container & Layout
+           ============================================ */
+        .game-container {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background: linear-gradient(180deg, #0a0a0a 0%, #1a0505 50%, #0a0a0a 100%);
+        }
+
+        /* Fear Effects - Red Breathing Border */
+        .fear-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            pointer-events: none;
+            z-index: 100;
+            opacity: 0;
+            transition: opacity 0.5s ease;
+        }
+
+        .fear-overlay.active {
+            opacity: 1;
+        }
+
+        .fear-border-top,
+        .fear-border-bottom,
+        .fear-border-left,
+        .fear-border-right {
+            position: absolute;
+            background: linear-gradient(to bottom, var(--color-blood-glow), transparent);
+            animation: breathe 2s ease-in-out infinite;
+        }
+
+        .fear-border-top {
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 150px;
+            background: linear-gradient(to bottom, var(--color-blood-glow), transparent);
+        }
+
+        .fear-border-bottom {
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 150px;
+            background: linear-gradient(to top, var(--color-blood-glow), transparent);
+            animation-delay: 1s;
+        }
+
+        .fear-border-left {
+            top: 0;
+            left: 0;
+            bottom: 0;
+            width: 100px;
+            background: linear-gradient(to right, var(--color-blood-glow), transparent);
+            animation-delay: 0.5s;
+        }
+
+        .fear-border-right {
+            top: 0;
+            right: 0;
+            bottom: 0;
+            width: 100px;
+            background: linear-gradient(to left, var(--color-blood-glow), transparent);
+            animation-delay: 1.5s;
+        }
+
+        @keyframes breathe {
+            0%, 100% { opacity: 0.3; }
+            50% { opacity: 0.8; }
+        }
+
+        /* Vignette Effect */
+        .vignette {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            pointer-events: none;
+            z-index: 50;
+            background: radial-gradient(ellipse at center, transparent 40%, rgba(0,0,0,0.7) 100%);
+        }
+
+        /* Screen Shake */
+        .shake {
+            animation: shake 0.5s ease-in-out;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            10% { transform: translateX(-5px) rotate(-0.5deg); }
+            20% { transform: translateX(5px) rotate(0.5deg); }
+            30% { transform: translateX(-5px) rotate(-0.5deg); }
+            40% { transform: translateX(5px) rotate(0.5deg); }
+            50% { transform: translateX(-3px); }
+            60% { transform: translateX(3px); }
+            70% { transform: translateX(-2px); }
+            80% { transform: translateX(2px); }
+            90% { transform: translateX(-1px); }
+        }
+
+        /* Flash Effect */
+        .flash-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            pointer-events: none;
+            z-index: 200;
+            opacity: 0;
+            transition: opacity 0.1s ease;
+        }
+
+        .flash-overlay.active {
+            opacity: 0.6;
+        }
+
+        /* ============================================
+           Title Screen
+           ============================================ */
+        .screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            display: flex;
+            flex-direction: column;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.5s ease, visibility 0.5s ease;
+        }
+
+        .screen.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .title-screen {
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            padding: 20px;
+            background: linear-gradient(180deg, #0a0a0a 0%, #1a0505 30%, #0a0a0a 100%);
+        }
+
+        .title-screen h1 {
+            font-family: var(--font-serif);
+            font-size: clamp(2rem, 8vw, 4rem);
+            color: #fff;
+            text-shadow: 0 0 30px var(--color-blood-glow);
+            margin-bottom: 10px;
+            animation: titlePulse 3s ease-in-out infinite;
+        }
+
+        @keyframes titlePulse {
+            0%, 100% { text-shadow: 0 0 30px var(--color-blood-glow); }
+            50% { text-shadow: 0 0 50px var(--color-blood), 0 0 80px var(--color-blood-glow); }
+        }
+
+        .title-screen .subtitle {
+            font-size: clamp(0.9rem, 3vw, 1.2rem);
+            color: var(--color-text-dim);
+            margin-bottom: 40px;
+        }
+
+        .title-screen .warning {
+            max-width: 400px;
+            padding: 15px 20px;
+            border: 1px solid var(--color-blood);
+            border-radius: 8px;
+            margin-bottom: 40px;
+            background: rgba(139, 0, 0, 0.1);
+        }
+
+        .title-screen .warning-title {
+            color: var(--color-blood);
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin-bottom: 8px;
+        }
+
+        .title-screen .warning-text {
+            font-size: 0.85rem;
+            color: var(--color-text-dim);
+        }
+
+        .btn {
+            padding: 15px 50px;
+            font-family: var(--font-sans);
+            font-size: 1.1rem;
+            font-weight: 500;
+            color: #fff;
+            background: linear-gradient(135deg, var(--color-blood) 0%, #5a0000 100%);
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all var(--transition-normal);
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 30px var(--color-blood-glow);
+        }
+
+        .btn:active {
+            transform: scale(0.98);
+        }
+
+        .title-screen .credits {
+            position: absolute;
+            bottom: 20px;
+            font-size: 0.75rem;
+            color: var(--color-text-dim);
+        }
+
+        /* ============================================
+           Game Screen
+           ============================================ */
+        .game-screen {
+            flex-direction: column;
+            background: var(--color-bg);
+        }
+
+        /* Status Bar */
+        .status-bar {
+            padding: 15px 20px;
+            background: linear-gradient(to bottom, rgba(0,0,0,0.9), rgba(0,0,0,0.7));
+            border-bottom: 1px solid #222;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            z-index: 10;
+        }
+
+        .stat {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex: 1;
+            min-width: 120px;
+        }
+
+        .stat-icon {
+            font-size: 1.2rem;
+        }
+
+        .stat-bar {
+            flex: 1;
+            height: 8px;
+            background: #222;
+            border-radius: 4px;
+            overflow: hidden;
+            min-width: 60px;
+        }
+
+        .stat-fill {
+            height: 100%;
+            border-radius: 4px;
+            transition: width 0.5s ease;
+        }
+
+        .stat-fill.health { background: linear-gradient(90deg, #8b0000, #ff4444); }
+        .stat-fill.sanity { background: linear-gradient(90deg, #4a0080, #9944ff); }
+        .stat-fill.karma { background: linear-gradient(90deg, #806000, #d4af37); }
+
+        .stat-value {
+            font-size: 0.75rem;
+            color: var(--color-text-dim);
+            min-width: 40px;
+            text-align: right;
+        }
+
+        /* Narrative Area */
+        .narrative-area {
+            flex: 1;
+            overflow-y: auto;
+            padding: 30px 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .narrative-content {
+            max-width: 700px;
+            width: 100%;
+        }
+
+        .scene-title {
+            font-size: 0.8rem;
+            color: var(--color-text-dim);
+            text-transform: uppercase;
+            letter-spacing: 3px;
+            margin-bottom: 20px;
+            opacity: 0.7;
+        }
+
+        .narrative-box {
+            background: rgba(0, 0, 0, 0.5);
+            border: 1px solid #333;
+            border-radius: 12px;
+            padding: 25px;
+            margin-bottom: 20px;
+            backdrop-filter: blur(10px);
+        }
+
+        .narrative-text {
+            font-family: var(--font-serif);
+            font-size: clamp(1rem, 2.5vw, 1.15rem);
+            line-height: 2;
+            white-space: pre-wrap;
+        }
+
+        .narrative-text .highlight {
+            color: var(--color-accent);
+            font-weight: 700;
+        }
+
+        .narrative-text .blood {
+            color: var(--color-blood);
+            font-weight: 700;
+            text-shadow: 0 0 10px var(--color-blood-glow);
+        }
+
+        .narrative-text .ghost {
+            color: #aaa;
+            font-style: italic;
+        }
+
+        .narrative-text .malay {
+            color: var(--color-gold);
+            font-style: italic;
+        }
+
+        /* Inner Monologue */
+        .inner-monologue {
+            background: rgba(139, 0, 0, 0.1);
+            border: 1px solid rgba(139, 0, 0, 0.3);
+            border-radius: 12px;
+            padding: 20px 25px;
+            margin-bottom: 20px;
+        }
+
+        .inner-monologue-label {
+            font-size: 0.75rem;
+            color: var(--color-blood);
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin-bottom: 10px;
+            opacity: 0.8;
+        }
+
+        .inner-monologue-text {
+            font-family: var(--font-serif);
+            font-style: italic;
+            color: #bbb;
+            font-size: clamp(0.95rem, 2.3vw, 1.05rem);
+            line-height: 1.9;
+        }
+
+        /* Typewriter Cursor */
+        .cursor {
+            display: inline-block;
+            width: 3px;
+            height: 1.2em;
+            background: var(--color-blood);
+            margin-left: 2px;
+            animation: blink 0.8s infinite;
+            vertical-align: text-bottom;
+        }
+
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0; }
+        }
+
+        /* Choices Area */
+        .choices-area {
+            padding: 20px;
+            background: linear-gradient(to top, rgba(0,0,0,0.95), rgba(0,0,0,0.8));
+            border-top: 1px solid #222;
+        }
+
+        .choices-container {
+            max-width: 700px;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .choice-btn {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            padding: 15px 20px;
+            background: rgba(20, 20, 20, 0.8);
+            border: 1px solid #333;
+            border-radius: 10px;
+            color: var(--color-text);
+            font-family: var(--font-sans);
+            font-size: clamp(0.9rem, 2.2vw, 1rem);
+            text-align: left;
+            cursor: pointer;
+            transition: all var(--transition-normal);
+            opacity: 0;
+            transform: translateX(-20px);
+            animation: slideIn 0.3s ease forwards;
+        }
+
+        .choice-btn:nth-child(1) { animation-delay: 0.1s; }
+        .choice-btn:nth-child(2) { animation-delay: 0.2s; }
+        .choice-btn:nth-child(3) { animation-delay: 0.3s; }
+        .choice-btn:nth-child(4) { animation-delay: 0.4s; }
+
+        @keyframes slideIn {
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        .choice-btn:hover {
+            background: rgba(139, 0, 0, 0.2);
+            border-color: var(--color-blood);
+            transform: translateX(10px);
+        }
+
+        .choice-btn:active {
+            transform: scale(0.98);
+        }
+
+        .choice-number {
+            color: var(--color-blood);
+            font-weight: 700;
+            min-width: 24px;
+        }
+
+        .choice-text {
+            flex: 1;
+        }
+
+        /* Free Input */
+        .free-input-container {
+            max-width: 700px;
+            margin: 0 auto;
+        }
+
+        .free-input-hint {
+            font-size: 0.85rem;
+            color: var(--color-text-dim);
+            margin-bottom: 15px;
+            padding: 10px 15px;
+            background: rgba(139, 0, 0, 0.1);
+            border-left: 3px solid var(--color-blood);
+            border-radius: 0 8px 8px 0;
+        }
+
+        .free-input-wrapper {
+            display: flex;
+            gap: 10px;
+        }
+
+        .free-input {
+            flex: 1;
+            padding: 15px 20px;
+            background: rgba(20, 20, 20, 0.9);
+            border: 1px solid #333;
+            border-radius: 10px;
+            color: var(--color-text);
+            font-family: var(--font-sans);
+            font-size: 1rem;
+            outline: none;
+            transition: all var(--transition-normal);
+        }
+
+        .free-input:focus {
+            border-color: var(--color-blood);
+            box-shadow: 0 0 20px rgba(139, 0, 0, 0.2);
+        }
+
+        .free-input::placeholder {
+            color: #555;
+        }
+
+        .submit-btn {
+            padding: 15px 25px;
+            background: var(--color-blood);
+            border: none;
+            border-radius: 10px;
+            color: #fff;
+            font-family: var(--font-sans);
+            font-size: 1rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all var(--transition-normal);
+        }
+
+        .submit-btn:hover {
+            background: #a00;
+            transform: scale(1.05);
+        }
+
+        /* Skip Hint */
+        .skip-hint {
+            text-align: center;
+            font-size: 0.75rem;
+            color: var(--color-text-dim);
+            margin-top: 15px;
+            opacity: 0.6;
+        }
+
+        /* ============================================
+           Inventory Panel
+           ============================================ */
+        .inventory-toggle {
+            position: fixed;
+            top: 80px;
+            right: 15px;
+            width: 50px;
+            height: 50px;
+            background: rgba(20, 20, 20, 0.9);
+            border: 1px solid #333;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            cursor: pointer;
+            z-index: 80;
+            transition: all var(--transition-normal);
+        }
+
+        .inventory-toggle:hover {
+            border-color: var(--color-blood);
+            transform: scale(1.1);
+        }
+
+        .inventory-badge {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            width: 20px;
+            height: 20px;
+            background: var(--color-blood);
+            border-radius: 50%;
+            font-size: 0.7rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .inventory-panel {
+            position: fixed;
+            top: 0;
+            right: -350px;
+            width: 350px;
+            max-width: 90vw;
+            height: 100%;
+            background: rgba(15, 15, 15, 0.98);
+            border-left: 1px solid #333;
+            z-index: 90;
+            transition: right 0.3s ease;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .inventory-panel.open {
+            right: 0;
+        }
+
+        .inventory-header {
+            padding: 20px;
+            border-bottom: 1px solid #333;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .inventory-header h3 {
+            font-size: 1.2rem;
+            font-weight: 500;
+        }
+
+        .inventory-close {
+            width: 36px;
+            height: 36px;
+            background: transparent;
+            border: 1px solid #333;
+            border-radius: 8px;
+            color: var(--color-text-dim);
+            font-size: 1.2rem;
+            cursor: pointer;
+            transition: all var(--transition-fast);
+        }
+
+        .inventory-close:hover {
+            border-color: var(--color-blood);
+            color: var(--color-blood);
+        }
+
+        .inventory-items {
+            flex: 1;
+            overflow-y: auto;
+            padding: 15px;
+        }
+
+        .inventory-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            padding: 15px;
+            background: rgba(30, 30, 30, 0.5);
+            border: 1px solid #333;
+            border-radius: 10px;
+            margin-bottom: 10px;
+            transition: all var(--transition-fast);
+        }
+
+        .inventory-item:hover {
+            border-color: #555;
+            background: rgba(40, 40, 40, 0.5);
+        }
+
+        .inventory-item.special {
+            border-color: var(--color-gold);
+            background: rgba(212, 175, 55, 0.05);
+        }
+
+        .item-icon {
+            font-size: 1.8rem;
+        }
+
+        .item-info {
+            flex: 1;
+        }
+
+        .item-name {
+            font-weight: 500;
+            margin-bottom: 4px;
+        }
+
+        .item-desc {
+            font-size: 0.8rem;
+            color: var(--color-text-dim);
+            line-height: 1.5;
+        }
+
+        .item-charges {
+            font-size: 0.75rem;
+            color: var(--color-gold);
+            margin-top: 5px;
+        }
+
+        /* Inventory Overlay */
+        .inventory-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.6);
+            z-index: 85;
+            opacity: 0;
+            visibility: hidden;
+            transition: all var(--transition-normal);
+        }
+
+        .inventory-overlay.open {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        /* ============================================
+           Status Display (Bottom)
+           ============================================ */
+        .game-status {
+            padding: 15px 20px;
+            background: rgba(0, 0, 0, 0.95);
+            border-top: 1px solid #222;
+        }
+
+        .flags-display {
+            max-width: 700px;
+            margin: 0 auto;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .flag-item {
+            padding: 5px 12px;
+            background: rgba(30, 30, 30, 0.8);
+            border: 1px solid #333;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            color: var(--color-text-dim);
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .flag-item.active {
+            border-color: var(--color-gold);
+            color: var(--color-gold);
+        }
+
+        .flag-item .flag-icon {
+            font-size: 0.8rem;
+        }
+
+        /* ============================================
+           Ending Screen
+           ============================================ */
+        .ending-screen {
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            padding: 30px;
+            background: linear-gradient(180deg, #0a0a0a 0%, #050505 100%);
+        }
+
+        .ending-type {
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 4px;
+            margin-bottom: 20px;
+            animation: fadeInUp 0.5s ease forwards;
+        }
+
+        .ending-type.good { color: #44ff44; }
+        .ending-type.bad { color: #ff4444; }
+        .ending-type.neutral { color: #888; }
+
+        .ending-title {
+            font-family: var(--font-serif);
+            font-size: clamp(2rem, 7vw, 3.5rem);
+            color: #fff;
+            margin-bottom: 30px;
+            animation: fadeInUp 0.5s ease 0.2s forwards;
+            opacity: 0;
+        }
+
+        .ending-narration {
+            max-width: 600px;
+            font-family: var(--font-serif);
+            font-size: clamp(1rem, 2.5vw, 1.15rem);
+            line-height: 2;
+            color: var(--color-text);
+            margin-bottom: 20px;
+            animation: fadeInUp 0.5s ease 0.4s forwards;
+            opacity: 0;
+        }
+
+        .ending-epilogue {
+            font-style: italic;
+            color: var(--color-text-dim);
+            margin-bottom: 40px;
+            animation: fadeInUp 0.5s ease 0.6s forwards;
+            opacity: 0;
+        }
+
+        .ending-stats {
+            max-width: 400px;
+            width: 100%;
+            padding: 20px;
+            background: rgba(20, 20, 20, 0.8);
+            border: 1px solid #333;
+            border-radius: 12px;
+            margin-bottom: 30px;
+            animation: fadeInUp 0.5s ease 0.8s forwards;
+            opacity: 0;
+        }
+
+        .ending-stats h4 {
+            font-size: 0.85rem;
+            color: var(--color-text-dim);
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin-bottom: 15px;
+        }
+
+        .achievements {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            justify-content: center;
+        }
+
+        .achievement {
+            padding: 8px 15px;
+            background: rgba(212, 175, 55, 0.1);
+            border: 1px solid var(--color-gold);
+            border-radius: 20px;
+            font-size: 0.8rem;
+            color: var(--color-gold);
+        }
+
+        .restart-btn {
+            animation: fadeInUp 0.5s ease 1s forwards;
+            opacity: 0;
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* ============================================
+           Message Toast
+           ============================================ */
+        .message-toast {
+            position: fixed;
+            top: 100px;
+            left: 50%;
+            transform: translateX(-50%) translateY(-20px);
+            padding: 12px 25px;
+            background: rgba(20, 20, 20, 0.95);
+            border: 1px solid #444;
+            border-radius: 10px;
+            color: var(--color-text);
+            font-size: 0.9rem;
+            z-index: 150;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .message-toast.show {
+            opacity: 1;
+            visibility: visible;
+            transform: translateX(-50%) translateY(0);
+        }
+
+        .message-toast.success {
+            border-color: var(--color-success);
+            color: var(--color-success);
+        }
+
+        .message-toast.warning {
+            border-color: var(--color-gold);
+            color: var(--color-gold);
+        }
+
+        .message-toast.danger {
+            border-color: var(--color-danger);
+            color: var(--color-danger);
+        }
+
+        /* ============================================
+           Save/Load Buttons
+           ============================================ */
+        .save-load-buttons {
+            position: fixed;
+            top: 80px;
+            left: 15px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            z-index: 80;
+        }
+
+        .save-load-btn {
+            width: 44px;
+            height: 44px;
+            background: rgba(20, 20, 20, 0.9);
+            border: 1px solid #333;
+            border-radius: 10px;
+            color: var(--color-text-dim);
+            font-size: 1.1rem;
+            cursor: pointer;
+            transition: all var(--transition-fast);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .save-load-btn:hover {
+            border-color: var(--color-blood);
+            color: var(--color-text);
+            transform: scale(1.1);
+        }
+
+        /* ============================================
+           Mobile Responsiveness
+           ============================================ */
+        @media (max-width: 768px) {
+            .status-bar {
+                padding: 10px 15px;
+                gap: 10px;
+            }
+
+            .stat {
+                min-width: 100px;
+            }
+
+            .stat-value {
+                display: none;
+            }
+
+            .narrative-area {
+                padding: 20px 15px;
+            }
+
+            .narrative-box {
+                padding: 20px;
+            }
+
+            .choices-area {
+                padding: 15px;
+            }
+
+            .choice-btn {
+                padding: 12px 15px;
+            }
+
+            .inventory-toggle {
+                top: auto;
+                bottom: 100px;
+                right: 15px;
+                width: 45px;
+                height: 45px;
+            }
+
+            .save-load-buttons {
+                top: auto;
+                bottom: 100px;
+                left: 15px;
+            }
+
+            .save-load-btn {
+                width: 40px;
+                height: 40px;
+            }
+
+            .fear-border-top,
+            .fear-border-bottom {
+                height: 100px;
+            }
+
+            .fear-border-left,
+            .fear-border-right {
+                width: 60px;
+            }
+
+            .flags-display {
+                justify-content: center;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .title-screen h1 {
+                font-size: 1.8rem;
+            }
+
+            .btn {
+                padding: 12px 35px;
+                font-size: 1rem;
+            }
+
+            .stat {
+                min-width: 80px;
+            }
+
+            .narrative-text {
+                font-size: 0.95rem;
+            }
+        }
+
+        /* ============================================
+           Loading Animation
+           ============================================ */
+        .loading {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .loading-dot {
+            width: 8px;
+            height: 8px;
+            background: var(--color-blood);
+            border-radius: 50%;
+            animation: loadingPulse 1.4s ease-in-out infinite;
+        }
+
+        .loading-dot:nth-child(2) { animation-delay: 0.2s; }
+        .loading-dot:nth-child(3) { animation-delay: 0.4s; }
+
+        @keyframes loadingPulse {
+            0%, 100% { transform: scale(1); opacity: 0.5; }
+            50% { transform: scale(1.5); opacity: 1; }
+        }
+
+        /* ============================================
+           Hallucination Text (High Fear)
+           ============================================ */
+        .hallucination {
+            position: fixed;
+            z-index: 95;
+            font-family: var(--font-serif);
+            font-size: clamp(1.5rem, 5vw, 2.5rem);
+            color: var(--color-blood);
+            text-shadow: 0 0 20px var(--color-blood-glow);
+            pointer-events: none;
+            opacity: 0;
+            animation: hallucinationFade 2s ease forwards;
+        }
+
+        @keyframes hallucinationFade {
+            0% { opacity: 0; transform: scale(0.8); }
+            20% { opacity: 0.8; transform: scale(1); }
+            80% { opacity: 0.8; transform: scale(1); }
+            100% { opacity: 0; transform: scale(1.2); }
+        }
+
+        /* ============================================
+           Rain Effect (CSS only)
+           ============================================ */
+        .rain-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            pointer-events: none;
+            z-index: 5;
+            overflow: hidden;
+            opacity: 0;
+            transition: opacity 1s ease;
+        }
+
+        .rain-container.active {
+            opacity: 0.3;
+        }
+
+        .rain-drop {
+            position: absolute;
+            width: 2px;
+            height: 20px;
+            background: linear-gradient(to bottom, transparent, rgba(255,255,255,0.3));
+            animation: rainFall linear infinite;
+        }
+
+        @keyframes rainFall {
+            0% { transform: translateY(-100px); }
+            100% { transform: translateY(100vh); }
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container" id="gameContainer">
+        <!-- Vignette Effect -->
+        <div class="vignette"></div>
+
+        <!-- Fear Overlay -->
+        <div class="fear-overlay" id="fearOverlay">
+            <div class="fear-border-top"></div>
+            <div class="fear-border-bottom"></div>
+            <div class="fear-border-left"></div>
+            <div class="fear-border-right"></div>
+        </div>
+
+        <!-- Flash Overlay -->
+        <div class="flash-overlay" id="flashOverlay"></div>
+
+        <!-- Rain Effect -->
+        <div class="rain-container" id="rainContainer"></div>
+
+        <!-- Title Screen -->
+        <div class="screen title-screen active" id="titleScreen">
+            <h1>加叻大道的第N位乘客</h1>
+            <p class="subtitle">The Nth Passenger on Karak Highway</p>
+
+            <div class="warning">
+                <div class="warning-title">⚠️ 內容警告</div>
+                <div class="warning-text">本遊戲包含心理恐懼、民俗怪談、血腥描述等內容，建議18歲以上玩家遊玩。</div>
+            </div>
+
+            <button class="btn" onclick="startGame()">開始遊戲</button>
+
+            <div class="credits">
+                Aurora Green Studio · v1.0.0 · 夢魘引擎
+            </div>
+        </div>
+
+        <!-- Game Screen -->
+        <div class="screen game-screen" id="gameScreen">
+            <!-- Status Bar -->
+            <div class="status-bar">
+                <div class="stat">
+                    <span class="stat-icon">❤️</span>
+                    <div class="stat-bar">
+                        <div class="stat-fill health" id="healthBar" style="width: 100%"></div>
+                    </div>
+                    <span class="stat-value" id="healthValue">100</span>
+                </div>
+                <div class="stat">
+                    <span class="stat-icon">👁️</span>
+                    <div class="stat-bar">
+                        <div class="stat-fill sanity" id="sanityBar" style="width: 100%"></div>
+                    </div>
+                    <span class="stat-value" id="sanityValue">100</span>
+                </div>
+                <div class="stat">
+                    <span class="stat-icon">☯️</span>
+                    <div class="stat-bar">
+                        <div class="stat-fill karma" id="karmaBar" style="width: 50%"></div>
+                    </div>
+                    <span class="stat-value" id="karmaValue">50</span>
+                </div>
+            </div>
+
+            <!-- Save/Load Buttons -->
+            <div class="save-load-buttons">
+                <button class="save-load-btn" onclick="saveGame()" title="儲存遊戲">💾</button>
+                <button class="save-load-btn" onclick="loadGame()" title="載入遊戲">📂</button>
+            </div>
+
+            <!-- Inventory Toggle -->
+            <div class="inventory-toggle" onclick="toggleInventory()">
+                🎒
+                <span class="inventory-badge" id="inventoryBadge">3</span>
+            </div>
+
+            <!-- Narrative Area -->
+            <div class="narrative-area" id="narrativeArea">
+                <div class="narrative-content">
+                    <div class="scene-title" id="sceneTitle">序章</div>
+                    <div class="narrative-box">
+                        <div class="narrative-text" id="narrativeText"></div>
+                    </div>
+                    <div class="inner-monologue" id="innerMonologue" style="display: none;">
+                        <div class="inner-monologue-label">內心獨白</div>
+                        <div class="inner-monologue-text" id="innerMonologueText"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Choices Area -->
+            <div class="choices-area">
+                <div class="choices-container" id="choicesContainer"></div>
+                <div class="skip-hint" id="skipHint" style="display: none;">點擊畫面跳過文字動畫</div>
+            </div>
+
+            <!-- Flags Display -->
+            <div class="game-status">
+                <div class="flags-display" id="flagsDisplay"></div>
+            </div>
+        </div>
+
+        <!-- Ending Screen -->
+        <div class="screen ending-screen" id="endingScreen">
+            <div class="ending-type good" id="endingType">✦ 善終 ✦</div>
+            <h1 class="ending-title" id="endingTitle">母子重逢</h1>
+            <p class="ending-narration" id="endingNarration"></p>
+            <p class="ending-epilogue" id="endingEpilogue"></p>
+
+            <div class="ending-stats">
+                <h4>🏆 成就解鎖</h4>
+                <div class="achievements" id="achievements"></div>
+            </div>
+
+            <button class="btn restart-btn" onclick="restartGame()">重新開始</button>
+        </div>
+
+        <!-- Inventory Panel -->
+        <div class="inventory-overlay" id="inventoryOverlay" onclick="toggleInventory()"></div>
+        <div class="inventory-panel" id="inventoryPanel">
+            <div class="inventory-header">
+                <h3>🎒 背包</h3>
+                <button class="inventory-close" onclick="toggleInventory()">×</button>
+            </div>
+            <div class="inventory-items" id="inventoryItems"></div>
+        </div>
+
+        <!-- Message Toast -->
+        <div class="message-toast" id="messageToast"></div>
+    </div>
+
+    <script>
+        // ============================================
+        // Game State
+        // ============================================
+        let gameState = {
+            currentScene: 'start_01',
+            stats: {
+                sanity: 100,
+                health: 100,
+                karma: 50
+            },
+            inventory: [
+                { id: 'phone', name: '手機', desc: '電量 12%，完全沒有訊號', icon: '📱', battery: 12 },
+                { id: 'water', name: '一瓶水', desc: '普通的礦泉水', icon: '💧' },
+                { id: 'amulet', name: '護身符', desc: '未開光', icon: '🔮', charges: 0, blessed: false }
+            ],
+            flags: {
+                has_prayed_datuk_kong: false,
+                has_whistled_at_night: false,
+                knows_pontianak_name: false,
+                yellow_vw_sighted: false,
+                grandma_appeared: false,
+                knows_rest_method: false,
+                in_loop: false,
+                first_encounter: false
+            },
+            history: []
+        };
+
+        let isTyping = false;
+        let typewriterTimeout = null;
+        let currentText = '';
+        let currentIndex = 0;
+
+        // ============================================
+        // Scene Data
+        // ============================================
+        const scenes = {
+            'start_01': {
+                title: '深夜 02:33 · 加叻大道',
+                text: `雨刷瘋狂地擺動，卻刮不淨擋風玻璃前如瀑布般的暴雨。你能感覺到車內的空氣變得黏稠、悶熱——那種只有熱帶才有的、彷彿被人用濕毛巾捂住口鼻的窒息感。
+
+你的車，就在加叻大道那條陰名遠播的隧道前，毫無預警地<span class="highlight">拋錨</span>了。
+
+儀表板上的時鐘開始閃爍。收音機裡原本播放的馬來流行歌被一陣刺耳的白噪音取代——沙沙沙沙——像是有人用指甲刮過生鏽的鐵板。
+
+你伸手想關掉收音機。
+
+就在這時——
+
+<span class="blood">後座傳來一陣嬰兒的哭聲。</span>
+
+那哭聲很近。很近。就像...就在你的耳後。
+
+但你記得很清楚。
+
+你是<span class="highlight">一個人</span>開車的。`,
+                innerMonologue: '這不可能...我明明是一個人...那聲音是從哪裡來的？',
+                rain: true,
+                choices: [
+                    { text: '回頭看後座', next: 'death_look_back', effect: { sanity: -100 }, condition: { sanity: '<50' } },
+                    { text: '調整後視鏡觀察', next: 'mirror_check', effect: { sanity: -10 } },
+                    { text: '無視聲音，嘗試重新發動引擎', next: 'engine_start', effect: { karma: 5 } }
+                ]
+            },
+            'mirror_check': {
+                title: '後視鏡',
+                text: `你顫抖著調整後視鏡。藉著偶爾劃破天際的閃電，你看到後座坐著一個<span class="blood">穿著白袍的長髮女子</span>。
+
+她低著頭，空氣中突然瀰漫著一股甜膩得令人作嘔的<span class="highlight">雞蛋花香 (Frangipani)</span>。
+
+根據南洋傳說，這是 <span class="blood">Pontianak</span> 出現的徵兆。
+
+她的頭，緩緩地抬起來了......`,
+                innerMonologue: '不要看她的臉...阿嬤說過，不要看她的臉...',
+                shake: true,
+                effect: { sanity: -15 },
+                choices: [
+                    { text: '閉上眼睛，念誦護身咒語', next: 'chant_prayer', effect: { karma: 10 } },
+                    { text: '猛踩油門，不管引擎能不能發動', next: 'engine_escape', effect: { sanity: -5 } },
+                    { text: '跳車逃跑', next: 'jump_out', effect: { health: -20, sanity: -10 } }
+                ]
+            },
+            'engine_start': {
+                title: '引擎',
+                text: `你咬緊牙關。
+
+<span class="malay">不要回頭。不要回頭。Jangan pandang belakang.</span>
+
+這是你阿嬤從小就唸叨的話。老人家說，夜路上聽到奇怪的聲音，<span class="highlight">千萬不要回頭</span>。你回頭，就是給「祂」開門。
+
+你強迫自己的視線釘在前方的擋風玻璃上。鑰匙轉動。引擎發出一聲嘶啞的咳嗽。
+
+「咔嗒。咔嗒。咔嗒。」
+
+沒有反應。
+
+後座的哭聲<span class="blood">停了</span>。
+
+停得太突然了。
+
+然後，你聽到了<span class="highlight">呼吸聲</span>。就在你的頸後。溫熱的、潮濕的氣息，輕輕拂過你的後頸......`,
+                innerMonologue: '她...就在我身後...',
+                effect: { sanity: -10, karma: 5 },
+                setFlag: { yellow_vw_sighted: true },
+                choices: [
+                    { text: '繼續嘗試發動引擎', next: 'engine_success', effect: { karma: 5 } },
+                    { text: '緩緩轉頭', next: 'turn_around', effect: { sanity: -30 } },
+                    { text: '念誦六字大明咒', next: 'chant_prayer', effect: { sanity: 10, karma: 10 } }
+                ]
+            },
+            'chant_prayer': {
+                title: '咒語',
+                text: `你閉上眼睛，嘴唇顫抖著吐出那些塵封已久的字句：
+
+<span class="malay">「唵。嘛。呢。叭。咪。吽。」</span>
+
+六字大明咒。
+
+你一遍又一遍地念誦。聲音從顫抖變得平穩，從平穩變得堅定。
+
+空氣中的花香開始<span class="highlight">消退</span>。你感覺到胸口的護身符開始發燙——一種溫暖的、像被人握住手的安心感。
+
+收音機的沙沙聲變了。變成了一個老婦人的聲音。沙啞，但溫和。熟悉得讓你眼眶一熱。
+
+<span class="ghost">「孫仔...阿嬤在這裡...」</span>
+
+不可能。阿嬤三年前就過世了。
+
+<span class="ghost">「前面有間土地廟...去拜拜...祂會幫你的...」</span>
+<span class="ghost">「記住...不要告訴祂你的名字...不要看祂的眼睛...」</span>
+
+聲音消失了。你睜開眼。
+
+<span class="highlight">雨停了。</span>
+
+你面前出現了一條<span class="highlight">岔路</span>。左邊通向一座紅色的神龕，右邊是加叻大道的延續。`,
+                innerMonologue: '阿嬤...真的是你嗎？',
+                effect: { sanity: 20, karma: 15 },
+                setFlag: { grandma_appeared: true },
+                blessAmulet: true,
+                choices: [
+                    { text: '左轉，前往土地公神龕', next: 'shrine_approach', effect: { karma: 10 } },
+                    { text: '右轉，繼續走大路', next: 'highway_continue', effect: { sanity: -5 } },
+                    { text: '下車步行', next: 'walk_outside', effect: { health: -5 } }
+                ]
+            },
+            'shrine_approach': {
+                title: '拿督公神龕',
+                text: `你的車在一棵巨大的老榕樹前停下。
+
+榕樹的氣根垂落如簾，樹幹粗得要五六個人才能環抱。樹下，就是那座<span class="highlight">神龕</span>。
+
+紅漆木製的小廟，龕內供著一尊小小的神像——一位留著白鬍子的老者，穿著馬來傳統服飾，頭戴宋谷帽。神像前擺著幾個橘子、一包香煙、幾根燃盡的香。
+
+最詭異的是——神龕前的兩根紅蠟燭，在無風的夜裡，<span class="highlight">穩穩地燃燒著</span>。
+
+你站在神龕前。空氣中瀰漫著<span class="malay">甘文煙 (Kemenyan)</span> 的氣味。
+
+然後，你聽到了一個聲音。低沉。蒼老。
+
+<span class="ghost">「孩子...你來這裡...做什麼...」</span>`,
+                innerMonologue: '祂在跟我說話...這是拿督公嗎？',
+                effect: { sanity: 10 },
+                choices: [
+                    { text: '跪下祈禱，請求庇護', next: 'pray_datuk', effect: { sanity: 30, karma: 20 } },
+                    { text: '獻上水作為供品', next: 'offer_water', effect: { sanity: 25, karma: 15 } },
+                    { text: '覺得是幻覺，轉身離開', next: 'leave_shrine', effect: { sanity: -20, karma: -30 } }
+                ],
+                freeInput: true,
+                freeInputHint: '你也可以輸入想說的話或想做的事...'
+            },
+            'pray_datuk': {
+                title: '拿督公的祝福',
+                text: `你雙膝跪入泥濘之中，雙手合十：
+
+「拿督公在上...信徒迷路於此，遭逢邪祟纏身...懇請拿督公慈悲庇護...」
+
+沉默。漫長的沉默。
+
+然後——蠟燭的火焰突然<span class="highlight">暴漲</span>。
+
+<span class="ghost">「清水潔淨。心意純正。」</span>
+
+一道無形的力量從神龕中湧出。你感覺到胸口的護身符突然<span class="highlight">灼熱</span>——某種能量正在注入。
+
+<span class="ghost">「護身符已開光。能擋三次邪祟侵襲。但只有三次。」</span>
+
+<span class="ghost">「那個女人...她叫『絲蒂』...生前是這條路上的新娘，死於難產...」</span>
+
+<span class="ghost">「她在找她的孩子。找了七十年。」</span>
+
+<span class="ghost">「告訴她——孩子在『榕樹下的第七棵墳』。」</span>
+
+<span class="ghost">「這是唯一能讓她安息的方法。」</span>
+
+風突然停了。遠處，一個<span class="blood">白色的身影</span>站在路邊的樹下......`,
+                innerMonologue: '絲蒂...七十年...她只是想找她的孩子...',
+                effect: { sanity: 30, karma: 25 },
+                setFlag: { has_prayed_datuk_kong: true, knows_pontianak_name: true, knows_rest_method: true },
+                blessAmulet: true,
+                amuletCharges: 3,
+                flash: '#d4af37',
+                choices: [
+                    { text: '對她說：「絲蒂...你的孩子在榕樹下的第七棵墳。」', next: 'tell_siti_truth', effect: { karma: 30 } },
+                    { text: '握緊護身符，慢慢繞過她', next: 'sneak_past', effect: { sanity: -15 } },
+                    { text: '衝向車子逃跑', next: 'run_to_car', effect: { sanity: -20, health: -10 } }
+                ]
+            },
+            'sneak_past': {
+                title: '護身符的守護',
+                text: `你握緊護身符，開始緩慢移動。
+
+一小步。又一小步。
+
+她的頭動了。「嘎吱——」像是生鏽的齒輪轉動的聲音。
+
+然後——<span class="blood">她瞬移到你面前</span>。
+
+你的護身符<span class="highlight">爆發出金光</span>！
+
+「嘶嘶嘶嘶——！」她發出淒厲的尖嘯，像是被燙傷了一樣向後退去。
+
+你看到了她的臉——蒼白如蠟，嘴巴裂開到耳根。但最可怕的是她的表情。
+
+不是憤怒。是<span class="highlight">悲傷</span>。一種深入骨髓的、絕望的悲傷。
+
+護身符的光芒黯淡了。<span class="highlight">剩餘兩次。</span>
+
+她站在原地，嘴唇動著：
+
+<span class="ghost">「Tolong... cari anak aku...」</span>
+<span class="ghost">「求求你...幫我找我的孩子...」</span>`,
+                innerMonologue: '她不是要殺我...她只是想找她的孩子...',
+                effect: { sanity: -15 },
+                useAmuletCharge: true,
+                setFlag: { first_encounter: true },
+                shake: true,
+                flash: '#d4af37',
+                choices: [
+                    { text: '尋找「榕樹下的第七棵墳」', next: 'search_grave', effect: { karma: 20 } },
+                    { text: '逃回車上，儘快離開', next: 'escape_ending', effect: { sanity: -10 } },
+                    { text: '告訴她孩子的位置', next: 'tell_siti_truth', effect: { karma: 30 } }
+                ]
+            },
+            'search_grave': {
+                title: '第七棵墳',
+                text: `你駛入更深的叢林小路，直到車燈照亮了一片古老的<span class="highlight">墓地</span>。
+
+墓碑東倒西歪，被藤蔓覆蓋。空地中央，一棵巨大的榕樹。
+
+你開始數墓碑。
+
+第一棵...第二棵...第三棵...
+
+第七棵墓碑就在榕樹的氣根之間。它很小。像是——像是一個<span class="highlight">嬰兒的墳墓</span>。
+
+碑上的字跡：
+
+<span class="highlight">「無名嬰孩之墓」</span>
+<span class="highlight">「生於民國三十二年」</span>
+<span class="highlight">「卒於民國三十二年」</span>
+
+1943年。日據時期。
+
+你身後傳來腳步聲。那股雞蛋花的香氣再次瀰漫——但這次，沒有那麼腐臭。
+
+她就站在你身後。
+
+你開口：「絲蒂...我找到了...你的孩子...就在這裡...」`,
+                innerMonologue: '七十年...她找了七十年的孩子，一直都在這裡...',
+                effect: { sanity: 10, karma: 20 },
+                choices: [
+                    { text: '讓開，讓她看到墳墓', next: 'ending_good', effect: { karma: 30 } }
+                ]
+            },
+            'tell_siti_truth': {
+                title: '真相',
+                text: `你鼓起勇氣，對著那個白色的身影說：
+
+「絲蒂...你的孩子在榕樹下的第七棵墳。他一直都在那裡...等你...」
+
+她停止了移動。
+
+那張破碎的臉上，空洞的眼眶中，似乎有什麼東西在閃爍。
+
+<span class="ghost">「...anak aku...?」</span>
+<span class="ghost">「...我的孩子...?」</span>
+
+她的身影開始變化。不再是恐怖的厲鬼——長髮依舊，但不再凌亂；白袍依舊，但不再沾滿血污。
+
+她看起來像一個普通的馬來少女。年輕，美麗，卻滿臉淚痕。
+
+<span class="ghost">「帶我去...求求你...帶我去見他...」</span>`,
+                innerMonologue: '她相信我了...我可以幫助她...',
+                effect: { sanity: 20, karma: 30 },
+                choices: [
+                    { text: '帶她前往墓地', next: 'ending_good', effect: { karma: 30 } }
+                ]
+            },
+            'ending_good': {
+                title: '重逢',
+                text: `她跪在那座小小的墳墓前。
+
+<span class="malay">「Anak aku... anak aku...」</span>
+<span class="ghost">「我的孩子...我的孩子...」</span>
+
+<span class="malay">「Maafkan ibu... ibu datang lambat...」</span>
+<span class="ghost">「原諒媽媽...媽媽來遲了...」</span>
+
+墓碑開始發光。微弱的、溫暖的金光。
+
+她抬起頭，看向你。不是空洞的眼眶，不是裂開的嘴。是一張年輕的臉，帶著淚水，但也帶著<span class="highlight">笑容</span>。
+
+<span class="malay">「Terima kasih...」</span>
+<span class="ghost">「謝謝你...」</span>
+
+光芒越來越亮——
+
+當你再次睜開眼時，她不見了。
+
+墳墓前多了一枚<span class="highlight">銀色的腳鏈</span>和一朵新鮮的<span class="highlight">雞蛋花</span>。
+
+天邊，出現了一絲魚肚白。
+
+<span class="highlight">黎明了。</span>`,
+                ending: true,
+                endingType: 'good',
+                endingTitle: '母子重逢',
+                endingNarration: '你選擇了幫助，而非逃避。你讓一個徘徊七十年的靈魂得到安息。',
+                endingEpilogue: '也許在某個深夜，當你再次經過加叻大道時，你會想起那朵潔白的雞蛋花。',
+                achievements: ['超渡者', '拿督公的信徒', '阿嬤的好孫子', '慈悲心']
+            },
+            'escape_ending': {
+                title: '逃離',
+                text: `你發動引擎，猛踩油門，車子呼嘯著衝出叢林。
+
+你一直開，一直開，直到看到高速公路的燈光。
+
+回頭望去，只有黑暗。
+
+你逃出來了。
+
+但每當深夜，當你聞到雞蛋花的香氣時，你總會想起那雙空洞的眼睛，和那句輕輕的請求：
+
+<span class="ghost">「幫我找我的孩子...」</span>
+
+你知道，她還在那裡。
+
+等待著。
+
+永遠等待著。`,
+                ending: true,
+                endingType: 'neutral',
+                endingTitle: '未完的執念',
+                endingNarration: '你選擇了逃跑。你活下來了，但那個悲傷的靈魂依然在加叻大道上徘徊。',
+                endingEpilogue: '也許有一天，會有另一個人聽到她的請求。',
+                achievements: ['生還者']
+            },
+            'death_look_back': {
+                title: '回頭',
+                text: `你回頭了。
+
+她就在那裡。
+
+臉貼著臉。
+
+你能感覺到她冰冷的呼吸。能聞到腐爛的花香。能看到那張<span class="blood">裂開的嘴</span>，一直裂到耳根。
+
+她笑了。
+
+「<span class="blood">找到你了。</span>」
+
+然後——
+
+<span class="blood">一切歸於黑暗。</span>`,
+                ending: true,
+                endingType: 'bad',
+                endingTitle: '第N位乘客',
+                endingNarration: '你成為了加叻大道上的又一個傳說。又一個永遠無法到達目的地的乘客。',
+                endingEpilogue: '據說在深夜的加叻大道上，有時會看到一輛拋錨的車。車裡坐著一個人，臉上帶著恐懼的表情，永遠定格在回頭的那一瞬間。',
+                achievements: ['不聽勸告']
+            }
+        };
+
+        // ============================================
+        // Game Functions
+        // ============================================
+
+        function startGame() {
+            document.getElementById('titleScreen').classList.remove('active');
+            document.getElementById('gameScreen').classList.add('active');
+            loadScene('start_01');
+            createRainDrops();
+        }
+
+        function loadScene(sceneId) {
+            const scene = scenes[sceneId];
+            if (!scene) {
+                console.error('Scene not found:', sceneId);
+                return;
+            }
+
+            gameState.currentScene = sceneId;
+            gameState.history.push(sceneId);
+
+            // Apply effects
+            if (scene.effect) {
+                applyEffects(scene.effect);
+            }
+
+            // Set flags
+            if (scene.setFlag) {
+                Object.assign(gameState.flags, scene.setFlag);
+            }
+
+            // Bless amulet
+            if (scene.blessAmulet) {
+                const amulet = gameState.inventory.find(i => i.id === 'amulet');
+                if (amulet) {
+                    amulet.blessed = true;
+                    amulet.desc = '已開光';
+                    amulet.charges = scene.amuletCharges || 3;
+                    showMessage('護身符已開光！', 'success');
+                }
+            }
+
+            // Use amulet charge
+            if (scene.useAmuletCharge) {
+                const amulet = gameState.inventory.find(i => i.id === 'amulet');
+                if (amulet && amulet.charges > 0) {
+                    amulet.charges--;
+                    showMessage(`護身符抵擋了攻擊！剩餘 ${amulet.charges} 次`, 'warning');
+                }
+            }
+
+            // Visual effects
+            if (scene.shake) {
+                triggerShake();
+            }
+            if (scene.flash) {
+                triggerFlash(scene.flash);
+            }
+            if (scene.rain) {
+                document.getElementById('rainContainer').classList.add('active');
+            } else {
+                document.getElementById('rainContainer').classList.remove('active');
+            }
+
+            // Update UI
+            document.getElementById('sceneTitle').textContent = scene.title;
+            updateStats();
+            updateFlags();
+            updateInventory();
+            updateFearEffect();
+
+            // Clear choices
+            document.getElementById('choicesContainer').innerHTML = '';
+            document.getElementById('innerMonologue').style.display = 'none';
+
+            // Check for ending
+            if (scene.ending) {
+                setTimeout(() => showEnding(scene), 2000);
+            }
+
+            // Typewriter effect
+            typewriterEffect(scene.text, () => {
+                if (scene.innerMonologue) {
+                    document.getElementById('innerMonologue').style.display = 'block';
+                    document.getElementById('innerMonologueText').textContent = scene.innerMonologue;
+                }
+                if (!scene.ending) {
+                    showChoices(scene.choices, scene.freeInput, scene.freeInputHint);
+                }
+            });
+        }
+
+        function typewriterEffect(text, callback) {
+            const container = document.getElementById('narrativeText');
+            container.innerHTML = '';
+            isTyping = true;
+            currentText = text;
+            currentIndex = 0;
+
+            document.getElementById('skipHint').style.display = 'block';
+
+            function type() {
+                if (currentIndex < currentText.length) {
+                    // Handle HTML tags
+                    if (currentText[currentIndex] === '<') {
+                        const closeIndex = currentText.indexOf('>', currentIndex);
+                        if (closeIndex !== -1) {
+                            container.innerHTML += currentText.substring(currentIndex, closeIndex + 1);
+                            currentIndex = closeIndex + 1;
+                        }
+                    } else {
+                        container.innerHTML += currentText[currentIndex];
+                        currentIndex++;
+                    }
+
+                    // Trigger effects for certain words
+                    const lastChars = container.textContent.slice(-10);
+                    if (lastChars.includes('血') || lastChars.includes('死') || lastChars.includes('鬼')) {
+                        if (Math.random() < 0.3) triggerShake();
+                    }
+
+                    const delay = currentText[currentIndex - 1]?.match(/[。，！？、]/) ? 150 : 30;
+                    typewriterTimeout = setTimeout(type, delay);
+                } else {
+                    isTyping = false;
+                    document.getElementById('skipHint').style.display = 'none';
+                    if (callback) callback();
+                }
+            }
+
+            type();
+        }
+
+        function skipTypewriter() {
+            if (isTyping) {
+                clearTimeout(typewriterTimeout);
+                document.getElementById('narrativeText').innerHTML = currentText;
+                isTyping = false;
+                document.getElementById('skipHint').style.display = 'none';
+
+                const scene = scenes[gameState.currentScene];
+                if (scene.innerMonologue) {
+                    document.getElementById('innerMonologue').style.display = 'block';
+                    document.getElementById('innerMonologueText').textContent = scene.innerMonologue;
+                }
+                if (!scene.ending) {
+                    showChoices(scene.choices, scene.freeInput, scene.freeInputHint);
+                }
+            }
+        }
+
+        function showChoices(choices, freeInput, freeInputHint) {
+            const container = document.getElementById('choicesContainer');
+            container.innerHTML = '';
+
+            choices.forEach((choice, index) => {
+                // Check conditions
+                if (choice.condition) {
+                    const [stat, op, value] = Object.entries(choice.condition)[0];
+                    const statValue = gameState.stats[stat.replace('<', '').replace('>', '')];
+                    if (op === '<' && statValue >= parseInt(value)) return;
+                    if (op === '>' && statValue <= parseInt(value)) return;
+                }
+
+                const btn = document.createElement('button');
+                btn.className = 'choice-btn';
+                btn.innerHTML = `<span class="choice-number">${index + 1}.</span><span class="choice-text">${choice.text}</span>`;
+                btn.onclick = () => {
+                    if (choice.effect) applyEffects(choice.effect);
+                    loadScene(choice.next);
+                };
+                container.appendChild(btn);
+            });
+
+            // Free input
+            if (freeInput) {
+                const inputContainer = document.createElement('div');
+                inputContainer.className = 'free-input-container';
+                inputContainer.innerHTML = `
+                    <div class="free-input-hint">💡 ${freeInputHint || '你也可以輸入想說的話...'}</div>
+                    <div class="free-input-wrapper">
+                        <input type="text" class="free-input" id="freeInput" placeholder="輸入你的行動...">
+                        <button class="submit-btn" onclick="handleFreeInput()">確認</button>
+                    </div>
+                `;
+                container.appendChild(inputContainer);
+
+                document.getElementById('freeInput').addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') handleFreeInput();
+                });
+            }
+        }
+
+        function handleFreeInput() {
+            const input = document.getElementById('freeInput').value.toLowerCase();
+            if (!input.trim()) return;
+
+            // Parse input for keywords
+            if (input.includes('祈禱') || input.includes('拜') || input.includes('求')) {
+                loadScene('pray_datuk');
+            } else if (input.includes('水') || input.includes('供品') || input.includes('獻')) {
+                applyEffects({ karma: 10 });
+                loadScene('pray_datuk');
+            } else if (input.includes('離開') || input.includes('走')) {
+                loadScene('leave_shrine');
+            } else {
+                showMessage('你的行動沒有產生特別的效果...', 'warning');
+            }
+        }
+
+        function applyEffects(effects) {
+            Object.entries(effects).forEach(([key, value]) => {
+                if (gameState.stats[key] !== undefined) {
+                    gameState.stats[key] = Math.max(0, Math.min(100, gameState.stats[key] + value));
+                }
+            });
+            updateStats();
+            updateFearEffect();
+
+            // Check death conditions
+            if (gameState.stats.health <= 0) {
+                loadScene('death_look_back');
+            }
+            if (gameState.stats.sanity <= 0) {
+                loadScene('death_look_back');
+            }
+        }
+
+        function updateStats() {
+            document.getElementById('healthBar').style.width = gameState.stats.health + '%';
+            document.getElementById('healthValue').textContent = gameState.stats.health;
+
+            document.getElementById('sanityBar').style.width = gameState.stats.sanity + '%';
+            document.getElementById('sanityValue').textContent = gameState.stats.sanity;
+
+            document.getElementById('karmaBar').style.width = gameState.stats.karma + '%';
+            document.getElementById('karmaValue').textContent = gameState.stats.karma;
+        }
+
+        function updateFlags() {
+            const container = document.getElementById('flagsDisplay');
+            container.innerHTML = '';
+
+            const flagLabels = {
+                has_prayed_datuk_kong: { icon: '🙏', text: '已拜拿督公' },
+                knows_pontianak_name: { icon: '👻', text: '知曉鬼名' },
+                yellow_vw_sighted: { icon: '🚗', text: '目擊黃色VW' },
+                grandma_appeared: { icon: '👵', text: '阿嬤顯靈' },
+                knows_rest_method: { icon: '📜', text: '知曉安息法' },
+                first_encounter: { icon: '⚔️', text: '首次遭遇' }
+            };
+
+            Object.entries(gameState.flags).forEach(([key, value]) => {
+                if (flagLabels[key] && value) {
+                    const flag = document.createElement('div');
+                    flag.className = 'flag-item active';
+                    flag.innerHTML = `<span class="flag-icon">${flagLabels[key].icon}</span>${flagLabels[key].text}`;
+                    container.appendChild(flag);
+                }
+            });
+        }
+
+        function updateInventory() {
+            const container = document.getElementById('inventoryItems');
+            const badge = document.getElementById('inventoryBadge');
+
+            container.innerHTML = '';
+            badge.textContent = gameState.inventory.length;
+
+            gameState.inventory.forEach(item => {
+                const div = document.createElement('div');
+                div.className = 'inventory-item' + (item.blessed ? ' special' : '');
+                div.innerHTML = `
+                    <span class="item-icon">${item.icon}</span>
+                    <div class="item-info">
+                        <div class="item-name">${item.name}</div>
+                        <div class="item-desc">${item.desc}</div>
+                        ${item.charges !== undefined ? `<div class="item-charges">剩餘次數: ${item.charges}/3</div>` : ''}
+                        ${item.battery !== undefined ? `<div class="item-charges">電量: ${item.battery}%</div>` : ''}
+                    </div>
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        function updateFearEffect() {
+            const fearLevel = 100 - gameState.stats.sanity;
+            const overlay = document.getElementById('fearOverlay');
+
+            if (fearLevel > 30) {
+                overlay.classList.add('active');
+                overlay.style.opacity = Math.min(1, fearLevel / 100);
+            } else {
+                overlay.classList.remove('active');
+            }
+
+            // Random hallucinations at high fear
+            if (fearLevel > 70 && Math.random() < 0.1) {
+                showHallucination();
+            }
+        }
+
+        function showHallucination() {
+            const texts = ['回頭看', '她在你身後', '快跑', '救我', '不要相信'];
+            const text = texts[Math.floor(Math.random() * texts.length)];
+
+            const hall = document.createElement('div');
+            hall.className = 'hallucination';
+            hall.textContent = text;
+            hall.style.top = (20 + Math.random() * 60) + '%';
+            hall.style.left = (10 + Math.random() * 80) + '%';
+            hall.style.transform = `rotate(${-15 + Math.random() * 30}deg)`;
+
+            document.getElementById('gameContainer').appendChild(hall);
+            setTimeout(() => hall.remove(), 2000);
+        }
+
+        function triggerShake() {
+            document.getElementById('gameContainer').classList.add('shake');
+            setTimeout(() => {
+                document.getElementById('gameContainer').classList.remove('shake');
+            }, 500);
+        }
+
+        function triggerFlash(color = '#fff') {
+            const flash = document.getElementById('flashOverlay');
+            flash.style.backgroundColor = color;
+            flash.classList.add('active');
+            setTimeout(() => flash.classList.remove('active'), 150);
+        }
+
+        function toggleInventory() {
+            document.getElementById('inventoryPanel').classList.toggle('open');
+            document.getElementById('inventoryOverlay').classList.toggle('open');
+        }
+
+        function showMessage(text, type = '') {
+            const toast = document.getElementById('messageToast');
+            toast.textContent = text;
+            toast.className = 'message-toast show ' + type;
+            setTimeout(() => toast.classList.remove('show'), 3000);
+        }
+
+        function showEnding(scene) {
+            document.getElementById('gameScreen').classList.remove('active');
+            document.getElementById('endingScreen').classList.add('active');
+
+            const typeClass = scene.endingType === 'good' ? 'good' : scene.endingType === 'bad' ? 'bad' : 'neutral';
+            const typeText = scene.endingType === 'good' ? '✦ 善終 ✦' : scene.endingType === 'bad' ? '✝ 惡終 ✝' : '— 中立結局 —';
+
+            document.getElementById('endingType').className = 'ending-type ' + typeClass;
+            document.getElementById('endingType').textContent = typeText;
+            document.getElementById('endingTitle').textContent = scene.endingTitle;
+            document.getElementById('endingNarration').textContent = scene.endingNarration;
+            document.getElementById('endingEpilogue').textContent = scene.endingEpilogue;
+
+            const achievementsContainer = document.getElementById('achievements');
+            achievementsContainer.innerHTML = '';
+            scene.achievements.forEach(a => {
+                const div = document.createElement('div');
+                div.className = 'achievement';
+                div.textContent = '🏆 ' + a;
+                achievementsContainer.appendChild(div);
+            });
+        }
+
+        function restartGame() {
+            // Reset state
+            gameState = {
+                currentScene: 'start_01',
+                stats: { sanity: 100, health: 100, karma: 50 },
+                inventory: [
+                    { id: 'phone', name: '手機', desc: '電量 12%，完全沒有訊號', icon: '📱', battery: 12 },
+                    { id: 'water', name: '一瓶水', desc: '普通的礦泉水', icon: '💧' },
+                    { id: 'amulet', name: '護身符', desc: '未開光', icon: '🔮', charges: 0, blessed: false }
+                ],
+                flags: {
+                    has_prayed_datuk_kong: false,
+                    has_whistled_at_night: false,
+                    knows_pontianak_name: false,
+                    yellow_vw_sighted: false,
+                    grandma_appeared: false,
+                    knows_rest_method: false,
+                    in_loop: false,
+                    first_encounter: false
+                },
+                history: []
+            };
+
+            document.getElementById('endingScreen').classList.remove('active');
+            document.getElementById('titleScreen').classList.add('active');
+            document.getElementById('fearOverlay').classList.remove('active');
+        }
+
+        function saveGame() {
+            const saveData = JSON.stringify(gameState);
+            localStorage.setItem('karak_save', saveData);
+            showMessage('遊戲已儲存', 'success');
+        }
+
+        function loadGame() {
+            const saveData = localStorage.getItem('karak_save');
+            if (saveData) {
+                gameState = JSON.parse(saveData);
+                document.getElementById('titleScreen').classList.remove('active');
+                document.getElementById('gameScreen').classList.add('active');
+                loadScene(gameState.currentScene);
+                showMessage('遊戲已載入', 'success');
+            } else {
+                showMessage('沒有找到存檔', 'warning');
+            }
+        }
+
+        function createRainDrops() {
+            const container = document.getElementById('rainContainer');
+            for (let i = 0; i < 100; i++) {
+                const drop = document.createElement('div');
+                drop.className = 'rain-drop';
+                drop.style.left = Math.random() * 100 + '%';
+                drop.style.animationDuration = (0.5 + Math.random() * 0.5) + 's';
+                drop.style.animationDelay = Math.random() * 2 + 's';
+                container.appendChild(drop);
+            }
+        }
+
+        // Click to skip typewriter
+        document.getElementById('narrativeArea').addEventListener('click', skipTypewriter);
+
+        // Keyboard shortcuts
+        document.addEventListener('keydown', (e) => {
+            if (e.key >= '1' && e.key <= '4') {
+                const index = parseInt(e.key) - 1;
+                const btns = document.querySelectorAll('.choice-btn');
+                if (btns[index]) btns[index].click();
+            }
+            if (e.key === ' ' || e.key === 'Enter') {
+                skipTypewriter();
+            }
+        });
+    </script>
+</body>
+</html>
